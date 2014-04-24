@@ -2,5 +2,3 @@ Contributors ordered by first contribution.
 
 Florian Daniel <mail@floriandaniel.it>
 Pierluigi Videsott <pierluigi.videsott@gmail.com>
-
-TEST
