@@ -1,0 +1,9 @@
+#iapi_annotator_highlight {
+	position : absolute;
+	overflow : hidden;
+	pointer-events : none;
+	display : none;
+	background-color : green;
+	z-index : 2147483646;
+	opacity : 0.4;
+}
