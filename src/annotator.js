@@ -32,27 +32,39 @@ var iapi_attribute_label_collection = new Array();
 /* Check if the element is a piece of the annotator_window */
 function isAnnotatorWindowElement(el) {
 	var el_id = $(el).attr('id');
-	if (el_id == 'iapi_annotator_window') return true;
-	else if ($(el).is('body')) return false;
+	if (el_id == 'iapi_annotator_window') {
+		return true; 
+	}
+	else if ($(el).is('body')) {
+		return false;
+	}
 	return isAnnotatorWindowElement($(el).parent());
 }
 
 /* Check if the element is a children of the selected iapi_source */
-function is_children_of_iapi_source(el) {
-	if ($(el).parent().is(selected_iapi_source)) return true;
-	else if ($(el).is('body')) return false;
-	return is_children_of_iapi_source($(el).parent());
+function isChildrenOfIapiSource(el) {
+	if ($(el).parent().is(selected_iapi_source)) {
+		return true;
+	}
+	else if ($(el).is('body')) {
+		return false;
+	}
+	return isChildrenOfIapiSource($(el).parent());
 }
 
 /* Check if the element is a children of the 'item' */
-function is_children_of_iapi_item(el, item) {
-	if ($(el).parent().is(item)) return true;
-	else if ($(el).is('body')) return false;
-	return is_children_of_iapi_item($(el).parent(), item);
+function isChildrenOfIapiItem(el, item) {
+	if ($(el).parent().is(item)) {
+		return true;
+	}
+	else if ($(el).is('body')) {
+		return false;
+	}
+	return isChildrenOfIapiItem($(el).parent(), item);
 }
 
 /* Show a highlight on the 'element' by getting its position and offset */
-function show_annotator_highlight(element) {
+function showAnnotatorHighlight(element) {
 	var offset = $(element).offset();
 	$('#iapi_annotator_highlight').show();
 
@@ -70,61 +82,61 @@ function highlightOnMouseOver(e) {
 	var element = e.target;
 	switch(context) {
 		case "choose_iapi_source":
-			if (!isAnnotatorWindowElement(element) && !$(el).is('body')) {
-				show_annotator_highlight(element);
+			if (!isAnnotatorWindowElement(element) && !$(element).is('body')) {
+				showAnnotatorHighlight(element);
 			}
 			break;
 		case "choose_source_type":
-			if(is_children_of_iapi_source(element)) {
-				show_annotator_highlight(element);
+			if(isChildrenOfIapiSource(element)) {
+				showAnnotatorHighlight(element);
 			}
 			break;
 		case "add_label_to_source":
-			if(is_children_of_iapi_source(element)) {
-				show_annotator_highlight(element);
+			if(isChildrenOfIapiSource(element)) {
+				showAnnotatorHighlight(element);
 			}
 			break;
 		case "choose_iapi_item":
-			if(is_children_of_iapi_source(element)) {
-				show_annotator_highlight(element);
+			if(isChildrenOfIapiSource(element)) {
+				showAnnotatorHighlight(element);
 			}
 			break;
 		case "add_label_to_item":
-			if(is_children_of_iapi_source(element)) {
-				show_annotator_highlight(element);
+			if(isChildrenOfIapiSource(element)) {
+				showAnnotatorHighlight(element);
 			}
 			break;
 		case "choose_iapi_attribute":
 			var element_is_valid = false;
 			selected_iapi_items.forEach(function(target) {
-				if(is_children_of_iapi_item(element, target)) {
+				if(isChildrenOfIapiItem(element, target)) {
 					element_is_valid = true;
 				}
 			});
-			if(element_is_valid) show_annotator_highlight(element);
+			if(element_is_valid) showAnnotatorHighlight(element);
 			break;
 		case "add_label_to_attribute":
 			var element_is_valid = false;
 			selected_iapi_items.forEach(function(target) {
-				if(is_children_of_iapi_item(element, target)) {
+				if(isChildrenOfIapiItem(element, target)) {
 					element_is_valid = true;
 				}
 			});
-			if(element_is_valid) show_annotator_highlight(element);
+			if(element_is_valid) showAnnotatorHighlight(element);
 			break;
 		case "attribute_annotation_done":
-			if (!isAnnotatorWindowElement(element) && !$(el).is('body')) {
-				show_annotator_highlight(element);
+			if (!isAnnotatorWindowElement(element) && !$(element).is('body')) {
+				showAnnotatorHighlight(element);
 			}
 			break;
 		case "new_iapi_attribute":
 			var element_is_valid = false;
 			selected_iapi_items.forEach(function(target) {
-				if(is_children_of_iapi_item(element, target)) {
+				if(isChildrenOfIapiItem(element, target)) {
 					element_is_valid = true;
 				}
 			});
-			if(element_is_valid) show_annotator_highlight(element);
+			if(element_is_valid) showAnnotatorHighlight(element);
 			break;
 	}
 }
@@ -199,7 +211,7 @@ function selectCurrentElement(e) {
 	
 	/* If the user selected an iapi_source make sure he can't select an element which is not a child of the iapi_source' */
 	if(context != 'choose_iapi_source') {
-		if(is_children_of_iapi_source(element)) element_is_valid = true;
+		if(isChildrenOfIapiSource(element)) element_is_valid = true;
 		else element_is_valid = false;
 	}
 	
@@ -207,14 +219,14 @@ function selectCurrentElement(e) {
 	if(context === 'choose_iapi_attribute') {
 		element_is_valid = false;
 		selected_iapi_items.forEach(function(target) {
-			if(is_children_of_iapi_item(element, target)) {
+			if(isChildrenOfIapiItem(element, target)) {
 				element_is_valid = true;
 			}
 		});
 	}
 
 	/* Make sure the clicked element is not part of the annotator window, is not the body and is valid */
-	if (!isAnnotatorWindowElement(element) && !$(el).is('body') && element_is_valid) {
+	if (!isAnnotatorWindowElement(element) && !$(element).is('body') && element_is_valid) {
 		var annotator_selected_highlight = "<div class='annotator_selected_highlight'></div>";
 		/* Look for the clicked item between the items which are already selected */
 		var element_index = selected.indexOf(element);
