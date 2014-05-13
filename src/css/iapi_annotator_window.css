@@ -14,6 +14,16 @@
 	text-align : center;
 }
 
+#iapi_annotator_window p {
+	display : block;
+	unicode-bidi : embed;
+	margin : 1.12em 0;
+	padding : 0;
+	line-height : 128%;
+	direction : ltr;
+	box-sizing : content-box;
+}
+
 #iapi_annotator_window a {
 	display : block;
 	unicode-bidi : embed;
@@ -41,6 +51,10 @@
 	height : 168px;
 	border-bottom : 1px solid #ccc;
 	box-sizing : initial;
+}
+
+#annotator_window_title {
+	font-weight : bold;
 }
 
 #annotator_window_previous {
