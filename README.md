@@ -8,7 +8,7 @@ The goal of this project is to develop a **Google Chrome extension for the speci
 License
 -------
 All software of the project is **free and open-source**, as specified by the terms 
-of the [BSD license](https://github.com/floriandanielit/iapi-automator/blob/master/LICENSE.txt).
+of the [BSD license](https://github.com/floriandanielit/iapi-annotator/blob/master/LICENSE.txt).
 
 
 iAPI reference specification
