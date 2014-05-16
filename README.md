@@ -17,8 +17,8 @@ Features and requirements
 ### Features
 
 * Supports the annotation of structured data inside web pages
-* Supports the annotation of user interfaces for cloning (tbd)
-* Supports the annotation of forms for form automation (tbf)
+* Supports the annotation of user interfaces for cloning
+* Supports the annotation of forms for form automation
 * Stores annotations either locally (Local Storage) or remotely (open iAPI repository)
 * Interactive and intuitive user interface
 
