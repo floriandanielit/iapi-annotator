@@ -7,9 +7,16 @@
  * more optimised short path, stopping at the first parent with a specific ID,
  * eg. "#content .top p" instead of "html body #main #content .top p:nth-child(3)"
  */
-function cssPath(el) {
+
+/* 
+ * el = element of which we need the path
+ * limit = element used to stop calculating the path if not null
+ * ignore_id = if true ignore ids
+ * child_filter = specify which element should specify ":nth-child"
+ */
+function cssPath(el, limit, ignore_id, child_filter) {
 	var fullPath = 0, // Set to 1 to build ultra-specific full CSS-path, or 0 for optimised selector
-	useNthChild = 0, // Set to 1 to use ":nth-child()" pseudo-selectors to match the given element
+	useNthChild = 1, // Set to 1 to use ":nth-child()" pseudo-selectors to match the given element
 	cssPathStr = '', testPath = '', parents = [], parentSelectors = [], tagName, cssId, cssClass, tagSelector, vagueMatch, nth, i, c;
 
 	// Go up the list of parent nodes and build unique identifier for each:
@@ -24,9 +31,12 @@ function cssPath(el) {
 
 		// Get node's CSS classes, replacing spaces with '.':
 		cssClass = (el.className ) ? ('.' + el.className.replace(/\s+/g, ".") ) : '';
+		// Make sure class doesn't contain double dots
+		cssClass = (el.className ) ? (cssClass.replace(/\.\./g, ".") ) : '';
+		
 
 		// Build a unique identifier for this parent node:
-		if (cssId) {
+		if (cssId && !ignore_id) {
 			// Matched by ID:
 			tagSelector = tagName + cssId + cssClass;
 		} else if (cssClass) {
@@ -45,8 +55,13 @@ function cssPath(el) {
 		if (cssId && !fullPath)
 			break;
 
-		// Go up to the next parent node:
-		el = el.parentNode !== document ? el.parentNode : false;
+		if(limit) {
+			// Go up to the next parent node:
+			el = el.parentNode !== limit ? el.parentNode : false;
+		} else {
+			// Go up to the next parent node:
+			el = el.parentNode !== document ? el.parentNode : false;
+		}
 
 	}// endwhile
 
@@ -60,17 +75,21 @@ function cssPath(el) {
 
 			// If there's no CSS class, or if the semi-complete CSS selector path matches multiple elements:
 			if (!parentSelectors[i].match(/\./) || $(cssPathStr).length > 1) {
-
-				// Count element's previous siblings for ":nth-child" pseudo-selector:
-				for ( nth = 1, c = el; c.previousElementSibling; c = c.previousElementSibling, nth++);
-
-				// Append ":nth-child()" to CSS path:
-				cssPathStr += ":nth-child(" + nth + ")";
+				var filter = new RegExp(child_filter);
+				if(parentSelectors[i].match(filter) || parentSelectors[i].match(/li/)) {
+					// Count element's previous siblings for ":nth-child" pseudo-selector:
+					for ( nth = 1, c = el; c.previousElementSibling; c = c.previousElementSibling, nth++);
+	
+					// Append ":nth-child()" to CSS path:
+					cssPathStr += ":nth-child(" + nth + ")";
+				}
 			}
 		}
 
 	}
 
+	var temp_path = cssPathStr.replace(/^[ \t]+|[ \t]+$/, '');
+	if(temp_path.slice(-1) === '.') temp_path = temp_path.substring(0, temp_path.length-1);;
 	// Return trimmed full CSS path:
-	return cssPathStr.replace(/^[ \t]+|[ \t]+$/, '');
+	return temp_path;
 }

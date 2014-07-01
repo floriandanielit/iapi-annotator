@@ -1,7 +1,16 @@
+/* 
+ * TODO:
+ * - make sure user can't click next if requirements are not met.
+ */
+
 /* Keep track of the state of the application */
 var context = 'choose_iapi_source';
 /* Change the default behavior to allow for additional attributes to be added to the selected items */
 var adding_more_attributes = false;
+/* Make sure a context acts differently when coming back to it if needed */
+var coming_back = false;
+/* When selecting an element try and look for similar ones to select automatically */
+var select_similar = true;
 
 /* Contains temporarily selected elements */
 var selected = new Array();
@@ -203,6 +212,74 @@ function preventDefaultClick(e) {
 	}
 }
 
+function selectSimilarElements(element) {
+	select_similar = false;
+	var path = '';
+	path = cssPath(element, selected_iapi_source, true, 'ul');
+	var similar_items = document.querySelectorAll(path);
+	alert(path);
+
+	switch(context) {
+		case "choose_iapi_item":
+			/* Look through the items found */
+			for(var i = 0; i < similar_items.length; ++i) {
+				/* Make sure the item is not the one the user clicked and make sure it is inside the iapi_source */
+				if(similar_items[i] !== element && isChildrenOfIapiSource(similar_items[i])) {
+					/* Look for the clicked item between the items which are already selected */
+					var element_index = selected.indexOf(similar_items[i]);
+					/* Check if the item was already selected: if not add it to the selection */
+					if (element_index <= -1) {
+						addSelection(similar_items[i]);
+					}
+				}
+			}
+			break;
+		case "choose_iapi_attribute":
+			/* Look through the attributes found */
+			for(var i = 0; i < similar_items.length; ++i) {
+				/* Make sure the attribute is not the one the user clicked */
+				selected_iapi_items.forEach(function(target) {
+					/* Make sure the attribute is inside one of the selected items */
+					if (isChildrenOfIapiItem(similar_items[i], target) && similar_items[i] !== element) {
+						/* Look for the clicked item between the items which are already selected */
+						var element_index = selected.indexOf(similar_items[i]);
+						/* Check if the item was already selected: if not add it to the selection */
+						if (element_index <= -1) {
+							addSelection(similar_items[i]);
+						}
+					}
+				});
+			}
+			break;
+	}
+	select_similar = true;
+}
+
+function addSelection(element) {
+	var annotator_selected_highlight = "<div class='annotator_selected_highlight'></div>";
+	/* The element was not already selected */
+	$('body').append(annotator_selected_highlight);
+	$('.annotator_selected_highlight').last().css({
+		'position' : 'absolute',
+		'overflow' : 'hidden',
+		'pointer-events' : 'none',
+		'display' : 'none',
+		'border' : '3px solid green',
+		'z-index' : 2147483646,
+	});
+	var offset = $(element).offset();
+	$('.annotator_selected_highlight').last().show();
+	$('.annotator_selected_highlight').last().width($(element).outerWidth() - 6);
+	$('.annotator_selected_highlight').last().height($(element).outerHeight() - 6);
+	$('.annotator_selected_highlight').last().offset({
+		top : offset.top,
+		left : offset.left
+	});
+	/* Add the element to the array of the selected ones */
+	selected.push(element);
+	selected_highlight.push($('.annotator_selected_highlight').last()); 
+}
+
 /* Select the clicked element by adding a border to it or deselect if the clicked element is already selected */
 function selectCurrentElement(e) {
 	var element = e.target;
@@ -227,36 +304,20 @@ function selectCurrentElement(e) {
 
 	/* Make sure the clicked element is not part of the annotator window, is not the body and is valid */
 	if (!isAnnotatorWindowElement(element) && !$(element).is('body') && element_is_valid) {
-		var annotator_selected_highlight = "<div class='annotator_selected_highlight'></div>";
 		/* Look for the clicked item between the items which are already selected */
 		var element_index = selected.indexOf(element);
-		if(element_index > -1) {
+		//TODO: ADD THIS BIT TO addSelection();
+		if (element_index > -1) {
 			/* Remove the element from the selected ones */
 			selected.splice(element_index, 1);
 			$(selected_highlight[element_index]).remove();
 			selected_highlight.splice(element_index, 1);
+		//TODO: stop here
 		} else {
-			/* The element was not already selected */
-			$('body').append(annotator_selected_highlight);
-			$('.annotator_selected_highlight').last().css({
-				'position' : 'absolute',
-				'overflow' : 'hidden',
-				'pointer-events' : 'none',
-				'display' : 'none',
-				'border' : '3px solid green',
-				'z-index' : 2147483646,
-			});
-			var offset = $(element).offset();
-			$('.annotator_selected_highlight').last().show();
-			$('.annotator_selected_highlight').last().width($(element).outerWidth() - 6);
-			$('.annotator_selected_highlight').last().height($(element).outerHeight() - 6);
-			$('.annotator_selected_highlight').last().offset({
-				top : offset.top,
-				left : offset.left
-			});
-			/* Add the element to the array of the selected ones */
-			selected.push(element);
-			selected_highlight.push($('.annotator_selected_highlight').last());
+			addSelection(element);
+			if(select_similar) {
+				selectSimilarElements(element);
+			}
 		}
 		
 		switch(context) {
@@ -294,6 +355,15 @@ function selectCurrentElement(e) {
 function prepareBehavior() {
 	switch(context) {
 		case "choose_iapi_source":
+			/* Make sure this works when coming back from another context */
+			$('.annotator_selected_highlight').each(function() {
+				$(this).remove();
+			});
+			if(selected_iapi_source_highlight) {
+				selected_iapi_source_highlight.css({
+					'border' : '3px solid green',
+				});
+			}
 			/* Add selection on click and highlight on mouse over */
 			document.addEventListener("mouseover", highlightOnMouseOver, true);
 			document.addEventListener("click", selectCurrentElement, true);
@@ -301,6 +371,10 @@ function prepareBehavior() {
 			document.addEventListener("click", preventDefaultClick, true);
 			break;
 		case "choose_source_type":
+			/* Make sure this works when coming back from another context */
+			selected_iapi_source_highlight.css({
+				'border' : '3px solid green',
+			});
 			/* Remove selection */
 			document.removeEventListener("click", selectCurrentElement, true);
 			/* React on text input */
@@ -311,11 +385,6 @@ function prepareBehavior() {
 			$('#annotator_window_previous').unbind();
 			$('#annotator_window_previous').click(function() {
 				context = 'choose_iapi_source';
-				$('.annotator_selected_highlight').each(function() {
-					$(this).remove();
-				});
-				selected = new Array();
-				selected_highlight = new Array();
 				updateAnnotatorState();
 			});
 			/* Change the behavior of the next button: change context if a choice has been submitted by the user */
@@ -325,7 +394,10 @@ function prepareBehavior() {
 				if (selected.length > 0) {
 				    iapi_source_type = selected.val();
 				    if(iapi_source_type === 'data') {
-					    context = 'add_label_to_source';
+					    context = 'choose_iapi_item';
+					    selected_iapi_source_highlight.css({
+							'border' : '3px solid grey',
+						});
 					    updateAnnotatorState();
 				    }
 				}
@@ -345,7 +417,7 @@ function prepareBehavior() {
 			/* Change the behavior of the previous button: change context */
 			$('#annotator_window_previous').unbind();
 			$('#annotator_window_previous').click(function() {
-				context = 'choose_source_type';
+				context = 'new_iapi_attribute';
 				updateAnnotatorState();
 			});
 			/* Change the behavior of the next button: change context if a label has been submitted by the user, change color of previously selected elements */
@@ -353,27 +425,39 @@ function prepareBehavior() {
 			$('#annotator_window_next').click(function() {
 				iapi_source_label = $("input[type='text'][name='iapi_source_label']").val();
 				if(iapi_source_label != '') {
-					context = 'choose_iapi_item';
-					selected_iapi_source_highlight.css({
-						'border' : '3px solid grey',
-					});
+					context = 'add_label_to_item';
 					updateAnnotatorState();
 				}
 			});
 			break;
 		case "choose_iapi_item":
+			/* Make sure this works when coming back from another context */
+			selected = new Array();
+			selected_highlight = new Array();
+			if(selected_iapi_items.length > 0) {
+				selected = selected_iapi_items;
+				selected_highlight = selected_iapi_items_highlight;
+				selected_iapi_items_highlight.forEach(function(element) {
+					$(element).css({
+						'border' : '3px solid green',
+					});
+				});
+				if(selected.length > 0) {
+					$('#annotator_window_next').css({'color' : '#000'});
+				}
+			}
 			document.addEventListener("click", selectCurrentElement, true);
-			
 			/* Change the behavior of the previous button: change context, remove or restore previous highlights, reset selected elements */
 			$('#annotator_window_previous').unbind();
 			$('#annotator_window_previous').click(function() {
-				context = 'add_label_to_source';
-				selected_highlight.forEach(function(element) {
-					$(element).remove();
-				});
-				selected_iapi_source_highlight.css({
-					'border' : '3px solid green',
-				});
+				context = 'choose_source_type';
+				if(selected_highlight) {
+					selected_highlight.forEach(function(element) {
+						$(element).remove();
+					});
+				}
+				selected_iapi_items = new Array();
+				selected_iapi_items_highlight = new Array();
 				selected = new Array();
 				selected_highlight = new Array();
 				updateAnnotatorState();
@@ -382,7 +466,16 @@ function prepareBehavior() {
 			/* Change the behavior of the next button: change context */
 			$('#annotator_window_next').unbind();
 			$('#annotator_window_next').click(function() {
-				context = 'add_label_to_item';
+				selected_iapi_items = selected;
+				selected_iapi_items_highlight = selected_highlight;
+				selected_iapi_items_highlight.forEach(function(element) {
+					$(element).css({
+						'border' : '3px solid grey',
+					});
+				});
+				selected = new Array();
+				selected_highlight = new Array();
+				context = 'choose_iapi_attribute';
 				updateAnnotatorState();
 			});
 			
@@ -401,7 +494,7 @@ function prepareBehavior() {
 			/* Change the behavior of the previous button: change context */
 			$('#annotator_window_previous').unbind();
 			$('#annotator_window_previous').click(function() {
-				context = 'choose_iapi_item';
+				context = 'add_label_to_source';
 				updateAnnotatorState();
 			});
 			/* Change the behavior of the next button: change context if a label has been submitted by the user, save selected elements, change color of previously selected elements */
@@ -409,64 +502,74 @@ function prepareBehavior() {
 			$('#annotator_window_next').click(function() {
 				iapi_items_label = $("input[type='text'][name='iapi_items_label']").val();
 				if(iapi_items_label != '') {
-					selected_iapi_items = selected;
-					selected_iapi_items_highlight = selected_highlight;
-					selected = new Array();
-					selected_highlight = new Array();
-					
-					selected_iapi_items_highlight.forEach(function(element) {
-						$(element).css({
-							'border' : '3px solid grey',
-						});
-					});
-					
-					context = 'choose_iapi_attribute';
+					context = 'add_label_to_attribute';
 					updateAnnotatorState();
 				}
 			});
 			break;
 		case "choose_iapi_attribute":
+			/* Make sure this works when coming back from another context NEXT CONTEXT NEEDS TO IMPLEMENT THE COMING_BACK VARIABLE*/
+			if(coming_back) {
+				selected = selected_iapi_attribute_collection[selected_iapi_attribute_collection.length-1];
+				selected_highlight = selected_iapi_attribute_highlight_collection[selected_iapi_attribute_highlight_collection.length-1];
+				selected_iapi_attribute_highlight_collection[selected_iapi_attribute_highlight_collection.length-1].forEach(function(element) {
+					$(element).css({
+						'border' : '3px solid green',
+					});
+				});
+				if(selected.length > 0) {
+					$('#annotator_window_next').css({'color' : '#000'});
+				}
+				selected_iapi_attribute_collection.splice(selected_iapi_attribute_collection.length-1, 1);
+				selected_iapi_attribute_highlight_collection.splice(selected_iapi_attribute_highlight_collection.length-1, 1);
+				coming_back = false;
+			}
 			document.addEventListener("click", selectCurrentElement, true);
 			$('#annotator_window_previous').unbind();
-			if(adding_more_attributes) {
-				/* Change the behavior of the previous button: change context, remove current highlights, reset selected elements */
-				$('#annotator_window_previous').click(function() {
+			/* Change the behavior of the previous button: change context, remove current highlights, reset selected elements */
+			$('#annotator_window_previous').click(function() {
+				if(selected_highlight) {
+					selected_highlight.forEach(function(element) {
+						$(element).remove();
+					});
+				}
+				selected = new Array();
+				selected_highlight = new Array();
+				if(adding_more_attributes || selected_iapi_attribute_collection.length>0) {
 					context = 'new_iapi_attribute';
-					selected_highlight.forEach(function(element) {
-						$(element).remove();
-					});
-					selected = new Array();
-					selected_highlight = new Array();
-					updateAnnotatorState();
-				});
-			} else {
-				/* Change the behavior of the previous button: change context, remove current highlights, re-select selected elements */
-				$('#annotator_window_previous').click(function() {
-					context = 'add_label_to_item';
-					selected_highlight.forEach(function(element) {
-						$(element).remove();
-					});
-					selected_iapi_items_highlight.forEach(function(element) {
-							$(element).css({
-								'border' : '3px solid green',
-							});
-						});
-					selected = selected_iapi_items;
-					selected_highlight = selected_iapi_items_highlight;
-					updateAnnotatorState();
-				});
-			}
+					adding_more_attributes = false;
+				} else {
+					context = 'choose_iapi_item';
+				}
+				updateAnnotatorState();
+			});
 			/* Change the behavior of the next button: change context */
 			$('#annotator_window_next').unbind();
 			$('#annotator_window_next').click(function() {
-				context = 'add_label_to_attribute';
+				selected_iapi_attribute_collection.push(selected);
+				selected_iapi_attribute_highlight_collection.push(selected_highlight);
+				selected_iapi_attribute_highlight_collection[selected_iapi_attribute_highlight_collection.length-1].forEach(function(element) {
+					$(element).css({
+						'border' : '3px solid grey',
+					});
+				});
+				selected = new Array();
+				selected_highlight = new Array();
+				context = 'new_iapi_attribute';
 				updateAnnotatorState();
 			});
 			
 			break;
 		case "add_label_to_attribute":
+			/* Highlight attributes that are being labeled */
+			selected_iapi_attribute_highlight_collection[iapi_attribute_label_collection.length].forEach(function(element) {
+				$(element).css({
+					'border' : '3px solid green',
+				});
+			});
 			/* Remove selection */
 			document.removeEventListener("click", selectCurrentElement, true);
+			$('#annotator_window_title').append(': #' + (iapi_attribute_label_collection.length+1));
 			/* React on text input */
 			$("input[type='text'][name='iapi_attribute_label']").keyup(function() {
 				if($("input[type='text'][name='iapi_attribute_label']").val() != '') {
@@ -485,42 +588,37 @@ function prepareBehavior() {
 			$('#annotator_window_next').unbind();
 			$('#annotator_window_next').click(function() {
 				var temp_label = $("input[type='text'][name='iapi_attribute_label']").val();
-				iapi_attribute_label_collection.push(temp_label);
 				if(temp_label != '') {
-					selected_iapi_attribute_collection.push(selected);
-					selected_iapi_attribute_highlight_collection.push(selected_highlight);
-					selected = new Array();
-					selected_highlight = new Array();
-					
-					selected_iapi_attribute_highlight_collection[selected_iapi_attribute_highlight_collection.length-1].forEach(function(element) {
+					selected_iapi_attribute_highlight_collection[iapi_attribute_label_collection.length].forEach(function(element) {
 						$(element).css({
 							'border' : '3px solid grey',
 						});
 					});
-					
-					context = 'attribute_annotation_done';
-					updateAnnotatorState();
+					iapi_attribute_label_collection.push(temp_label);
+					/* Keep asking for labels for each attribute added */
+					if(iapi_attribute_label_collection.length < selected_iapi_attribute_collection.length) {
+						context = 'add_label_to_attribute';
+						updateAnnotatorState();
+					} else {
+						finalize();
+					}
 				}
 			});
 			break;
 		case "attribute_annotation_done":
-			/* Remove selection and highlight */
+			/* Remove selection */
 			document.removeEventListener("click", selectCurrentElement, true);
-			document.removeEventListener("mouseover", highlightOnMouseOver, true);
-			document.removeEventListener("click", preventDefaultClick, true);
 			/* Change the behavior of the previous button: change context, change next and previous button's text */
 			$('#annotator_window_previous').unbind();
 			$('#annotator_window_previous').click(function() {
-				context = 'new_iapi_attribute';
-				$('#annotator_window_previous').text('PREVIOUS');
-				$('#annotator_window_next').text('NEXT');
-				adding_more_attributes = true; /* User decided to add more attributes to the items he selected */
+				context = 'choose_iapi_attribute';
 				updateAnnotatorState();
 			});
 			/* Change the behavior of the next button: end annotation */
 			$('#annotator_window_next').unbind();
 			$('#annotator_window_next').click(function() {
-				finalize();
+				context = 'new_iapi_attribute';
+				updateAnnotatorState();
 			});
 			break;
 		case "new_iapi_attribute":
@@ -529,16 +627,27 @@ function prepareBehavior() {
 			/* Change the behavior of the previous button: change context */
 			$('#annotator_window_previous').unbind();
 			$('#annotator_window_previous').click(function() {
-				context = 'attribute_annotation_done';
+				coming_back = true;
+				context = 'choose_iapi_attribute'; 
+				$('#annotator_window_next').text('NEXT');
 				updateAnnotatorState();
 			});
 			/* Change the behavior of the next button: change context, change text of buttons */
 			$('#annotator_window_next').unbind();
 			$('#annotator_window_next').click(function() {
-				context = 'choose_iapi_attribute';
-				$('#annotator_window_previous').text('PREVIOUS');
+				/* Finalize: add labels to elements */
+				context = 'add_label_to_source';
 				$('#annotator_window_next').text('NEXT');
 				updateAnnotatorState();
+			});
+			$('#iapi_add_more').click(function() {
+				adding_more_attributes = true;
+				context = 'choose_iapi_attribute';
+				$('#annotator_window_next').text('NEXT');
+				updateAnnotatorState();
+			});
+			$('#iapi_remove').click(function() {
+				// TODO
 			});
 			break;
 	}
@@ -579,32 +688,34 @@ function updateAnnotatorState() {
 			modifyWindow(title, description, null, null, null, false, true, false);
 			break;
 		case "add_label_to_attribute":
-			var title = 'ADD A LABEL TO THE ATTRIBUTE';
+			var title = 'ADD A LABEL TO THE HIGHLIGHTED ATTRIBUTE';
 			var input_name = 'iapi_attribute_label';
-			modifyWindow(title, null, input_name, null, null, false, true, false);
+			modifyWindow(title, description, input_name, null, null, false, true, false);
 			break;
 		case "attribute_annotation_done":
 			var title = 'DONE';
-			var description = 'You can add or remove attributes by clicking on ATTRIBUTES. To exit or to start a new annotation click DONE.';
-			modifyWindow(title, description, null, 'ATTRIBUTES', 'DONE', false, true, true);
+			var description = 'To add more attributes, exit or start a new annotation click NEXT.';
+			modifyWindow(title, description, null, null, null, false, true, true);
 			break;
 		case "new_iapi_attribute":
 			var title = 'ADD OR REMOVE ATTRIBUTES';			
 			var content = '';
-			if(iapi_attribute_label_collection.length > 0) {
-				content += 'ADDED ATTRIBUTES:<br>';
-				iapi_attribute_label_collection.forEach(function(element) {
-					content += element + '<br>';
-				});
+			if(selected_iapi_attribute_collection.length > 0) {
+				content = 'You added ' + selected_iapi_attribute_collection.length + ' attribute';
+				if(selected_iapi_attribute_collection.length > 1) {
+					content += 's';
+				}
+				content += '.<a href="javascript:void(0)" id="iapi_add_more"> + </a><a href="javascript:void(0)" id="iapi_remove"> - </a>' 
+						+ '<br><br> Click + to add more attributes or - to remove one.<br> Click FINALIZE to complete this annotation.';
 			} else {
 				content = 'There are no <span style="color: green">iAPI attributes</span> for the <span style="color: green">iAPI items</span> you selected.';
 			}
-			modifyWindow(title, content, null, 'DONE', 'ADD', false, true, true);
+			modifyWindow(title, content, null, null, 'FINALIZE', false, true, true);
 			break;
 	}
 	
 	/* Change behavior depending on the context in which the user finds himself */
-	prepareBehavior(context);
+	prepareBehavior();
 }
 
 function addAnnotatorWindow() {
@@ -662,4 +773,4 @@ function finalize() {
 }
 
 /* Add a draggable window to the current page */
-addAnnotatorWindow(updateAnnotatorState);
+addAnnotatorWindow();
