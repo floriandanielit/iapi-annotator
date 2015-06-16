@@ -1,0 +1,7 @@
+create table annotations (
+id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+url VARCHAR(500),
+CSSpath VARCHAR(500),
+CSSid VARCHAR(100),
+iAPIvalue VARCHAR(200)
+);
