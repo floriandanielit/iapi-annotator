@@ -29,7 +29,10 @@
 		"tabs",
 		"activeTab",
 	    "http://*/*",
-	    "https://*/*"	    
+	    "https://*/*",
+	    "webRequest",
+	    "http://test.lifeparticipation.org:5080/iapi_annotator_rep/*",
+	    "http://localhost:8080/iapi_annotator_rep/*"
 	],
 	
 	"web_accessible_resources": [
@@ -37,7 +40,9 @@
 		"lib/custom_functions.js",
 		"finalize.js",
 		"html/*",
-		"css/*"
+		"css/*",
+		"http://test.lifeparticipation.org:5080/iapi_annotator_rep/*",
+		"http://localhost:8080/iapi_annotator_rep/*"
 	]
 	
 }
